@@ -70,3 +70,8 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# over 100MB package files
+Assets/Toon Fantasy Nature/Scenes
+Assets/Toon Fantasy Nature/Terrain/TFF_Terrain_Grass_1A_D.tif
+Assets/Toon Fantasy Nature/Terrain/TFF_Terrain_Sand_1A_D.tif
