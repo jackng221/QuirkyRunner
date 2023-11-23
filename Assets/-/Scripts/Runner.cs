@@ -1,66 +1,72 @@
+using Cinemachine;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Splines;
 
 public class Runner : MonoBehaviour
 {
-    RunnerInput input;
-
     NavMeshAgent agent;
-    //Vector3 destinationPos;
     GameObject charObj;
 
-    Camera cam;
-    Vector3 pointerPos;
+    [SerializeField] CinemachineSmoothPath path;
+    public float targetPos = 0;
+    public float distanceIncrement = 1f;
+    public float posCheckDistance = 2f;
+    public float checkIntervalSec = 0.3f;
+
+    public bool isAiControlled = true; //AI by default
 
     private void Awake()
     {
-        input = new RunnerInput();
-
         agent = GetComponent<NavMeshAgent>();
         charObj = GetComponentInChildren<Animator>().gameObject;
     }
-    private void OnEnable()
-    {
-        input.Enable();
-    }
-    private void OnDisable()
-    {
-        input.Disable();
-    }
-
     private void Start()
     {
-        cam = GameObject.FindObjectsByType<Camera>(FindObjectsSortMode.None) [0];
         agent.updateRotation = false; Debug.Log("Disabled rotation on runner navmesh agent");
-    }
-    private void Update()
-    {
-        //Debug.DrawRay(cam.ScreenToWorldPoint(input.Player.Point.ReadValue<Vector2>()), cam.transform.forward);
 
-        RaycastHit hit;
-        if (Physics.Raycast( cam.ScreenToWorldPoint(input.Player.Point.ReadValue<Vector2>()), cam.transform.forward, out hit ))
-        {
-            pointerPos = hit.point;
-            Debug.DrawRay(pointerPos, Vector3.up);
-        }
+        if (isAiControlled == false) return;
 
-        if (input.Player.Tap.IsPressed())
-        {
-            MoveToPoint();
-        }
+        InitializeAi();
     }
     private void FixedUpdate()
     {
         if (agent.velocity.magnitude > 0.1f)
         {
-            charObj.transform.rotation = Quaternion.Lerp( charObj.transform.rotation, Quaternion.LookRotation(agent.velocity), 0.5f);
-            Debug.Log(Quaternion.LookRotation(agent.velocity));
+            charObj.transform.rotation = Quaternion.Lerp( charObj.transform.rotation, Quaternion.LookRotation(agent.velocity), 1f);
+            //Debug.Log(Quaternion.LookRotation(agent.velocity));
         }
     }
-    public void MoveToPoint()
+
+    public void MoveToPoint(Vector3 destination)
     {
-        agent.SetDestination(pointerPos);
+        agent.SetDestination(destination);
+    }
+
+    void InitializeAi()
+    {
+        agent.SetDestination(path.EvaluatePosition(0));
+        StartCoroutine( MoveAiCoroutine() );
+    }
+    void MoveAi()
+    {
+        if ( (path.EvaluatePosition(targetPos) - transform.position).sqrMagnitude < posCheckDistance * posCheckDistance )
+        {
+            targetPos += (distanceIncrement / path.PathLength) * path.MaxPos;
+            if (targetPos >= path.MaxPos) targetPos = 0;
+
+            agent.SetDestination(path.EvaluatePosition(targetPos));
+        }
+    }
+    IEnumerator MoveAiCoroutine()
+    {
+        bool temp = true;
+        while (temp)
+        {
+            MoveAi();
+            yield return new WaitForSeconds(checkIntervalSec);
+        }
     }
 }
